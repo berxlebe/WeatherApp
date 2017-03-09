@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+	<head>
+		<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.2/angular.min.js"></script>
+		<script src="weather_app_ng.js"></script>
+	<link rel="stylesheet" type="text/css" href="weather_app.css">
+	</head>
+	<body class ="background" ng-app="weatherApp" ng-controller="weatherCntrl" ng-int="getWeather();" >
+<div class="headerdiv"><h1 class="header">Weather App</h1></div>
+<div class="holdingDiv">
+		
+		<div style="width:40%; margin:0 auto;">
+        <h2>Enter your destination:</h2>
+        <input type="text" size="50" ng-model="locale"> </input><button ng-click="updateLocale();">Get Weather</button>
+        </div>
+<BR>
+        <div style="border:5px solid #0033CC;border-radius:15px 15px 0 0; display:inline-block; width:50%;margin-left:25%;height:200px;border-bottom:none">
+        <h1 style="color:orange;text-align:center; height:20%; margin:0;">Currently</h1>
+        <div style="height:75%; width:45%; display:inline-block;vertical-align:top;">
+        <img src={{currentW.url}} alt={{currentW.desc}} height="100%" width="100%">
+        </div>
+        <div style="height:75%; width:45%; display:inline-block;vertical-align:top;">
+        <div style="display:inline-block;width:85%;margin:5%; height:30%; text-align:center; font-size:x-large;">{{currentW.temp|number:0}}&#8457</div>
+        <div style="display:inline-block;width:30%;margin:5%;text-align:center;">Humidity: <br>{{currentW.humid}} %</div>
+        <div style="display:inline-block;width:30%;margin:5%;text-align:center;">Wind: <br> {{currentW.wind|number:1}} MPH</div>
+        </div>
+        </div>
+
+
+
+<br>
+        <div style="background-color:#0033CC;border-radius:15px; display:inline-block; width:80%;margin-left:10%;">
+        <h1 style="color:white;text-align:center">Extended Outlook</h1>
+		<div class="fiveDay" ng-repeat="day in fiveDay">
+            <div style="width:100%; background-color:#FF9900; height:20%; margin-top:-20px; border-radius:15px 15px 0 0">
+			<h2 style="color:#0033CC; text-align:center; padding-top:3px;">{{day.date|date : "EEEE (M/dd)"}}</h2></div>
+        <img src={{day.url}} alt={{day.desc}} height="50%" width="100%">
+			<div style="display:inline-block;width:30%;margin:5%;text-align:center;">High:<br>{{day.hi|number:0}}&#8457</div>
+            <div style="display:inline-block;width:30%;margin:5%;text-align:center;">Low:<br>{{day.lo|number:0}}&#8457</div>
+    
+            
+		</div>
+<div>
+	</body>
+
+</html>
