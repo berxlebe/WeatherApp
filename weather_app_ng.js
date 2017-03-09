@@ -69,22 +69,27 @@ weatherApp.controller('weatherCntrl', ['$scope', '$http', function($scope,$http)
       var dayCount = 0;
       var dayHi = $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list["0"].main.temp;
       var dayLo = $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list["0"].main.temp;
-      var dayDesc = $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list["0"].weather["0"].description;
-      var dayid = $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list["0"].weather["0"].id;
+      var dayid = []
       for(i=0;i<$scope.weatherForecastData[$scope.weatherIndex.toString()].data.list.length;i++){
           if(day !=$scope.weatherForecastData[$scope.weatherIndex.toString()].data.list[i.toString()].dt_txt.split(" ")[0].split("-")[2]){
-          $scope.fiveDay[dayCount]={
+              indexMax = 0;
+              maxCount = 0;
+              for(j=0;j<dayid.length;j++){
+                 if(dayid[j].count>maxCount)
+                    indexMax=j;
+                    maxCount = dayid[j].count
+              }
+              $scope.fiveDay[dayCount]={
                   "hi":dayHi,
                   "lo":dayLo, 
-                  "desc":dayDesc,
-                  "id":dayid,
+                  "desc":dayid[indexMax].desc,
+                  "id":dayid[indexMax].id,
                   "date": $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list[i.toString()].dt_txt.split(" ")[0],
-                  "url":$scope.getURL(dayid)
+                  "url":$scope.getURL(dayid[indexMax].id)
                   };
               dayHi = $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list[i.toString()].main.temp;
               dayLo = $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list[i.toString()].main.temp;
-              dayDesc = $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list[i.toString()].weather["0"].description;
-              dayid = $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list[i.toString()].weather["0"].id;
+              dayid = [];
               dayCount++;
               day= $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list[i.toString()].dt_txt.split(" ")[0].split("-")[2];
           }
@@ -95,7 +100,25 @@ weatherApp.controller('weatherCntrl', ['$scope', '$http', function($scope,$http)
               if(dayLo > $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list[i.toString()].main.temp){
                   dayLo=$scope.weatherForecastData[$scope.weatherIndex.toString()].data.list[i.toString()].main.temp;
               }
+              for(j=0; j<$scope.weatherForecastData[$scope.weatherIndex.toString()].data.list[i.toString()].weather.length;j++){
+                  index = dayid.find(function( obj ) { 
+                      return obj.id === $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list[i.toString()].weather[j.toString()].id;
+                  });
+                  if(index){
+                      dayid[index.key].count++;
+                  }
+                  else{
+                       dayid.push({
+                            "id" : $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list[i.toString()].weather[j.toString()].id,
+                            "desc" : $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list[i.toString()].weather[j.toString()].description,
+                            "count" : 1
+                        });
+                        key = dayid.length-1;
+                        dayid[key].key = key;
+                     
+                  }
                   
+              }                  
           }
          
       }
