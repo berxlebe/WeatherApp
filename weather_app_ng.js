@@ -9,59 +9,14 @@ weatherApp.controller('weatherCntrl', ['$scope', '$http', function($scope,$http)
 
 
 /*default values if user refuses location access*/
-  $scope.locale=""; // location name displayed
+  $scope.localePretty=""; // location name displayed
   $scope.coord = {"lat":41.8819283, "lon":-87.6445473, };  //Coordinates of current weather
-  $scope.getURL=function(id){
-      var url;
-        if(id<300){
-            url = "http://openweathermap.org/img/w/11d.png";
-        }
-        else if(id<500){
-            url = "http://openweathermap.org/img/w/09d.png";
-        }
-        else if(id<=504){
-            url = "http://openweathermap.org/img/w/10d.png";
-            
-        }
-         else if(id<=531){
-            url = "http://openweathermap.org/img/w/09d.png";
-        }
-       else if(id<700){
-            url = "http://openweathermap.org/img/w/13d.png";
-            
-        }
-        else if(id<800){
-            url = "http://openweathermap.org/img/w/50d.png";
-            
-        }
-        else if(id==800){
-            url = "http://openweathermap.org/img/w/01d.png";
-            
-        }
-        else if(id==801){
-            url = "http://openweathermap.org/img/w/02d.png";
-            
-        }
-        else if(id==802){
-            url = "http://openweathermap.org/img/w/03d.png";
-            
-        }
-        else if(id==803 || id==804){
-            url = "http://openweathermap.org/img/w/01d.png";
-            
-        }
-        else{
-            url=null;
-        }
-        return url;
-    };
   $scope.compile1day=function(){
       $scope.currentW.id = $scope.weatherCurrentData[$scope.weatherIndex.toString()].weather["0"].id;
       $scope.currentW.temp = $scope.weatherCurrentData[$scope.weatherIndex.toString()].main.temp;
       $scope.currentW.humid = $scope.weatherCurrentData[$scope.weatherIndex.toString()].main.humidity;
       $scope.currentW.wind = $scope.weatherCurrentData[$scope.weatherIndex.toString()].wind.speed;
       $scope.currentW.desc = $scope.weatherCurrentData[$scope.weatherIndex.toString()].weather["0"].description;
-      $scope.currentW.url = $scope.getURL($scope.currentW.id);
   };
 
   $scope.compileFiveDay=function(){
@@ -84,8 +39,7 @@ weatherApp.controller('weatherCntrl', ['$scope', '$http', function($scope,$http)
                   "lo":dayLo, 
                   "desc":dayid[indexMax].desc,
                   "id":dayid[indexMax].id,
-                  "date": $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list[i.toString()].dt_txt.split(" ")[0],
-                  "url":$scope.getURL(dayid[indexMax].id)
+                  "date": $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list[i.toString()].dt_txt.split(" ")[0]
                   };
               dayHi = $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list[i.toString()].main.temp;
               dayLo = $scope.weatherForecastData[$scope.weatherIndex.toString()].data.list[i.toString()].main.temp;
@@ -174,9 +128,9 @@ weatherApp.controller('weatherCntrl', ['$scope', '$http', function($scope,$http)
 
   /*function converts user input to latitude/longitude*/
   $scope.updateLocale=function(){
-        $http.get('http://maps.googleapis.com/maps/api/geocode/json?address='+$scope.locale).then(function(res){
+        $http.get('http://maps.googleapis.com/maps/api/geocode/json?address='+$scope.localePretty).then(function(res){
             /*set initial locale to be current zipcode*/
-            $scope.locale = res.data.results["0"].formatted_address;
+            $scope.localePretty = res.data.results["0"].formatted_address;
             $scope.coord.lon = res.data.results["0"].geometry.location.lng;
             $scope.coord.lat = res.data.results["0"].geometry.location.lat;
             $scope.getWeather();
@@ -193,7 +147,7 @@ weatherApp.controller('weatherCntrl', ['$scope', '$http', function($scope,$http)
             /*set initial locale to be current address*/
             var str = res.data.results["0"].formatted_address;
             /* pare off street level address data to not look so creepy*/
-            $scope.locale = str.substring(str.indexOf(",") + 1);
+            $scope.localePretty = str.substring(str.indexOf(",") + 1);
             $scope.getWeather();
         });
     };
@@ -203,7 +157,7 @@ weatherApp.controller('weatherCntrl', ['$scope', '$http', function($scope,$http)
             //set initial locale to be current address
             var str = res.data.results["0"].formatted_address;
             // pare off street level address data to not look so creepy
-            $scope.locale = str.substring(str.indexOf(",") + 1);
+            $scope.localePretty = str.substring(str.indexOf(",") + 1);
             $scope.getWeather();
         });
     };
@@ -214,7 +168,7 @@ weatherApp.controller('weatherCntrl', ['$scope', '$http', function($scope,$http)
             navigator.geolocation.getCurrentPosition($scope.showLocation, $scope.fallback);
         }
         else{
-            $scope.locale="Chicago,IL 60661";
+            $scope.localePretty="Chicago,IL 60661";
         }
     };
  
@@ -224,3 +178,53 @@ weatherApp.controller('weatherCntrl', ['$scope', '$http', function($scope,$http)
 
 
 
+weatherApp.filter('urlGet', function() {
+  return function(input, night) {
+    input = input || '';
+    var out = '';
+    var imgNum;
+    var id = parseInt(input);
+    if(id<300){
+        imgNum = "11";
+    }
+    else if(id<500){
+        imgNum = "09";
+    }
+    else if(id<=504){
+        imgNum = "10";
+    }
+    else if(id<=531){
+        imgNum = "09";
+    }
+    else if(id<700){
+        imgNum = "13";
+    }
+    else if(id<800){
+        imgNum = "50";
+    }
+    else if(id==800){
+            imgNum = "01";
+    }
+    else if(id==801){
+        imgNum = "02";
+    }
+    else if(id==802){
+        imgNum = "03";
+    }
+    else if(id==803 || id==804){
+        imgNum = "04";
+    }
+    else{
+        return null;
+    }
+    // conditional based on optional argument
+    if (night) {
+      out = "http://openweathermap.org/img/w/" + imgNum + "n.png";
+    }
+    else{
+      out = "http://openweathermap.org/img/w/" + imgNum + "d.png";
+        
+    }
+    return out;
+  };
+})
