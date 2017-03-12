@@ -1,84 +1,35 @@
 var weatherApp = angular.module('weatherApp',[]);
-weatherApp.controller('weatherCntrl', ['$scope', '$http', 'weatherLocale', 'fiveDay', function($scope,$http, weatherLocale, fiveDay) {
+weatherApp.controller('weatherCntrl', ['$scope', '$http', 'weather', function($scope,$http, weather) {
   /*arrays to store weather data received*/
   $scope.weatherForecastData = [];
   $scope.weatherIndex = 0;
-  $scope.fiveDay=[];
-  $scope.currentW={};
 
 
 /*default values if user refuses location access*/
   $scope.localePretty=""; // location name displayed
-  $scope.coord = {"lat":41.8819283, "lon":-87.6445473, };  //Coordinates of current weather
+  $scope.coord = {"lat":41.8819283, "lon":-87.6445473, };  //deault Coordinates
 
-  /*function to return index of already fetched data if data is still valid*/
-  $scope.checkDataStore=function(locale){
-     while($scope.weatherForecastData.length>0){
-         if($scope.weatherForecastData[0].checkFresh()<0){
-            $scope.weatherForecastData.shift();
-         }
-         else{
-             break;
-         }
-     }
-     for(var i =0; i<$scope.weatherForecastData.length; i++){
-        if($scope.weatherForecastData[i].locale == locale){ /* stored data found for searched location*/
-                return i;
-        }
-    }
-         /*no stored data found*/
-         return -1;
-  }; 
-  $scope.getWeather=function(){
-      locale="lat="+$scope.coord.lat+"&lon="+$scope.coord.lon;      
-
-
-      var result=$scope.checkDataStore(locale); // we will only query the api if the data is stale
-      if(result>=0){
-          $scope.weatherIndex = result;
-          return;
-      }
-      $http({ // get weather forecast for chosen location 
-        method: 'GET',
-        url: 'http://api.openweathermap.org/data/2.5/forecast?' + locale + '&units=imperial&APPID=18ef13e9cf0755705c69c038cebea935',
-    }).then(function(response){
-        var weatherObj = new weatherLocale(locale);
-        $scope.weatherForecastData.push(weatherObj);
-        $scope.weatherIndex = $scope.weatherForecastData.length - 1;
-        var index = $scope.weatherIndex;
-        $scope.weatherForecastData[index].fiveday = new fiveDay(response.data);
-        $http({  // get current weather for chosen location
-            method: 'GET',
-            url: 'http://api.openweathermap.org/data/2.5/weather?' + locale + '&units=imperial&APPID=18ef13e9cf0755705c69c038cebea935',
-        }).then(function(response){
-            $scope.weatherForecastData[index].CurrentData = response.data;
-        });
-    });
-  };
 
   /*function converts user input to latitude/longitude*/
   $scope.updateLocale=function(){
         $http.get('http://maps.googleapis.com/maps/api/geocode/json?address='+$scope.localePretty).then(function(res){
             /*set initial locale to be current zipcode*/
             $scope.localePretty = res.data.results["0"].formatted_address;
-            $scope.coord.lon = res.data.results["0"].geometry.location.lng;
-            $scope.coord.lat = res.data.results["0"].geometry.location.lat;
-            $scope.getWeather();
+            $scope.weatherIndex =weather.getWeather(res.data.results["0"].geometry.location.lat, 
+                                                    res.data.results["0"].geometry.location.lng, 
+                                                    $scope.weatherForecastData);
         });
   };
   
      
     $scope.showLocation = function (pos) {
-        /*set longitude and latitude to use for fetching weather*/
-        $scope.coord.lon = pos.coords.longitude;
-        $scope.coord.lat = pos.coords.latitude;
         /*query google APIs to get displayable address to match coordinates*/
         $http.get('http://maps.googleapis.com/maps/api/geocode/json?latlng='+pos.coords.latitude+','+pos.coords.longitude).then(function(res){
             /*set initial locale to be current address*/
             var str = res.data.results["0"].formatted_address;
             /* pare off street level address data to not look so creepy*/
             $scope.localePretty = str.substring(str.indexOf(",") + 1);
-            $scope.getWeather();
+            $scope.weatherIndex =weather.getWeather(pos.coords.latitude,pos.coords.longitude,$scope.weatherForecastData );
         });
     };
     $scope.fallback = function (error) {
@@ -88,7 +39,7 @@ weatherApp.controller('weatherCntrl', ['$scope', '$http', 'weatherLocale', 'five
             var str = res.data.results["0"].formatted_address;
             // pare off street level address data to not look so creepy
             $scope.localePretty = str.substring(str.indexOf(",") + 1);
-            $scope.getWeather();
+            $scope.weatherIndex =weather.getWeather($scope.coord.lat,$scope.coord.lon,$scope.weatherForecastData);
         });
     };
     
@@ -159,7 +110,77 @@ weatherApp.filter('urlGet', function() {
   };
 })
 
-//weatherApp.factory('weatherLocale', ['fiveDayFactory', 'oneDayFactory', function weatherLocaleFactory(fiveDayFactory, oneDayFactory) {
+weatherApp.service('localeUpdate', ['dataMgmt','weatherLocale','$http','fiveDay', function localeUpdateService(dataMgmt, weatherLocale,$http,fiveDay){
+  this.getWeather=function(lat,lon, forecastArr){
+      var locale="lat="+lat+"&lon="+lon;      
+      if(dataMgmt.checkDataStore(locale,forecastArr)>=0){
+          return result;
+      }
+      forecastArr.push(new weatherLocale(locale));
+      var index = forecastArr.length - 1;
+      $http({ // get weather forecast for chosen location 
+        method: 'GET',
+        url: 'http://api.openweathermap.org/data/2.5/forecast?' + locale + '&units=imperial&APPID=18ef13e9cf0755705c69c038cebea935'
+    }).then(function(response){
+        forecastArr[index].fiveday = new fiveDay(response.data);
+    });
+    $http({  // get current weather for chosen location
+       method: 'GET',
+       url: 'http://api.openweathermap.org/data/2.5/weather?' + locale + '&units=imperial&APPID=18ef13e9cf0755705c69c038cebea935'
+    }).then(function(response){
+       forecastArr[index].CurrentData = response.data;
+    });
+    return index;
+  };
+}]);
+
+
+weatherApp.service('weather', ['dataMgmt','weatherLocale','$http','fiveDay', function weatherService(dataMgmt, weatherLocale,$http,fiveDay){
+  this.getWeather=function(lat,lon, forecastArr){
+      var locale="lat="+lat+"&lon="+lon;      
+      if(dataMgmt.checkDataStore(locale,forecastArr)>=0){
+          return result;
+      }
+      forecastArr.push(new weatherLocale(locale));
+      var index = forecastArr.length - 1;
+      $http({ // get weather forecast for chosen location 
+        method: 'GET',
+        url: 'http://api.openweathermap.org/data/2.5/forecast?' + locale + '&units=imperial&APPID=18ef13e9cf0755705c69c038cebea935'
+    }).then(function(response){
+        forecastArr[index].fiveday = new fiveDay(response.data);
+    });
+    $http({  // get current weather for chosen location
+       method: 'GET',
+       url: 'http://api.openweathermap.org/data/2.5/weather?' + locale + '&units=imperial&APPID=18ef13e9cf0755705c69c038cebea935'
+    }).then(function(response){
+       forecastArr[index].CurrentData = response.data;
+    });
+    return index;
+  };
+}]);
+
+weatherApp.service('dataMgmt',[function dataMgmtService(){
+        this.checkDataStore=function(locale, forecastArr){
+             while(forecastArr.length>0){
+                 if(forecastArr[0].checkFresh()<0){
+                    forecastArr.shift();
+                 }
+                 else{
+                     break;
+                 }
+             }
+             for(var i =0; i<forecastArr.length; i++){
+                if(forecastArr[i].locale == locale){ /* stored data found for searched location*/
+                        return i;
+                }
+            }
+                 /*no stored data found*/
+                 return -1;
+                    
+        }
+}]);
+
+
 weatherApp.factory('weatherLocale', [ function weatherLocaleFactory() {
 
   var loc = function(locale){
